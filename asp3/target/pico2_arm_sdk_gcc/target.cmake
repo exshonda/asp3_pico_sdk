@@ -7,7 +7,8 @@
 #
 set(ARCHDIR ${ASP3_ROOT_DIR}/arch/arm_m_gcc)
 get_filename_component(CHIPDIR ${CMAKE_CURRENT_LIST_DIR}/../../arch/arm_m_gcc/rp2350 ABSOLUTE)
-get_filename_component(GCCDIR  ${CMAKE_CURRENT_LIST_DIR}/../../arch/gcc ABSOLUTE)
+#  ツール依存部（tool_stddef.h）は asp3_core 側を共用する（SDK側の重複コピーは廃止）．
+set(GCCDIR  ${ASP3_ROOT_DIR}/arch/gcc)
 set(TARGETDIR ${CMAKE_CURRENT_LIST_DIR})
 
 list(APPEND ASP3_CFG_FILES
