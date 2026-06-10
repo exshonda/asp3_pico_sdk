@@ -27,6 +27,7 @@ list(APPEND ASP3_INCLUDE_DIRS
     ${PICO_SDK_PATH}/src/common/hardware_claim/include
     ${PICO_SDK_PATH}/src/common/pico_sync/include
     ${PICO_SDK_PATH}/src/common/pico_time/include
+    ${PICO_SDK_PATH}/src/rp2_common/pico_platform_common/include    # SDK 2.2.0+（pico/platform/common.h）。2.1.1では非存在=無視
     ${PICO_SDK_PATH}/src/rp2_common/pico_platform_compiler/include
     ${PICO_SDK_PATH}/src/rp2_common/pico_platform_sections/include
     ${PICO_SDK_PATH}/src/rp2_common/pico_platform_panic/include

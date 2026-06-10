@@ -50,7 +50,7 @@ git clone --recurse-submodules https://github.com/exshonda/asp3_pico_sdk.git
 cd asp3_pico_sdk
 # 既存clone: git submodule update --init --recursive
 
-export PICO_SDK_PATH=/path/to/pico-sdk          # 2.1.1
+export PICO_SDK_PATH=/path/to/pico-sdk          # 2.1.1 / 2.2.0
 cd sample1
 
 # 推奨：VS Code Pico 拡張で sample1/ を開き、ボード/プラットフォームを選んで Build/Debug．
@@ -73,7 +73,8 @@ cmake -S . -B build_riscv -DPICO_PLATFORM=rp2350-riscv -DPICO_BOARD=pico2 && cma
 `minicom -D /dev/ttyACM0 -b 115200`（Debugprobe）等で
 `TOPPERS/ASP3 Kernel ...` → `task1 is running (NNN).` の周期出力が出れば基本動作OK。
 
-> 前提ツール：pico-sdk 2.1.1 / Pico SDK 拡張同梱ツールチェーン（ARM=14_2_Rel1、RISC-V=拡張の RISC-V toolchain＝newlib）/
+> 前提ツール：pico-sdk **2.1.1 / 2.2.0**（両方でビルド確認済。2.2.0 は `pico_platform_common/include` の
+>   追加が必要で対応済）/ Pico SDK 拡張同梱ツールチェーン（ARM=14_2_Rel1、RISC-V=拡張の RISC-V toolchain＝newlib）/
 >   cmake≥3.13 / python3 / picotool。
 > 既知の検証実績（**ARM-S・RISC-V とも拡張同梱ツールチェーンで PICO2 実機 task1＋シリアル RX を確認済**）：
 >  - ARM-S：拡張 ARM toolchain(14_2_Rel1)＋拡張 SDK でビルド確認（システム arm-none-eabi-gcc でも可）。実機 task1＋RX 済。
