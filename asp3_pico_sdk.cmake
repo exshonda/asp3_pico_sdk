@@ -56,11 +56,17 @@ function(asp3_set_pico_sdk_options TARGET)
   if (PICO_PLATFORM STREQUAL "rp2350-riscv")
     #  RISC-V（Hazard3）版：割込みコントローラは Xh3irq（カスタムCSR）
     #  ASP3 の chip_initialize() が mtvec を trap_vector_table に向けて掌握する．
-    #  pico-sdk の irq_* は Xh3irq を経由しないため --wrap は不要．
     #  IRQ優先度初期化を抑止（ASP3 が Xh3irq を chip_initialize() で設定する）
     target_compile_definitions(${TARGET}
       PUBLIC PICO_RUNTIME_SKIP_INIT_PER_CORE_IRQ_PRIORITIES
     )
+    #  ⚠️ 既知の制約（タスク2-項4・割込み共存）：
+    #  ARM 版のような irq_*/exception_* の --wrap（ASP3 管理への誘導）は RISC-V 未実装．
+    #  ARM は RAM ベクタ表（_kernel_exc_tbl）で動的登録できるが，RISC-V の ASP3 割込み表
+    #  （_kernel_inh_table）は const のため，pico-sdk の irq_set_exclusive_handler() を
+    #  そのまま受けると hard_assert で PANIC する．現状は target_serial.c 側で UART RX
+    #  割込みコールバック登録を抑止（TX のみ）して回避している（task1 出力は成立）．
+    #  RX 割込み共存は別途対応（_kernel_inh_table の RAM 化 or 動的登録機構が必要）．
   else()
     #  ARM-S版：ASP3 が NVIC を掌握するため，SDKのベクタ/IRQ優先度初期化を抑止する
     target_compile_definitions(${TARGET}

@@ -1,0 +1,5 @@
+#ifndef _PICO_RISCV_CLIMITS_SHIM_
+#define _PICO_RISCV_CLIMITS_SHIM_
+#include <limits.h>
+namespace std {}
+#endif

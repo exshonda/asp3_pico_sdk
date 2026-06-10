@@ -18,10 +18,13 @@ asp3_pico_sdk/
 │   │                                   ※tool依存部(arch/gcc)は asp3_core 側を共用（重複コピー廃止）
 │   └── target/
 │       ├── pico2_arm_sdk_gcc/       ← ターゲット依存部（ARM-S・ASP3_TARGET_DIR で供給）
-│       └── pico2_riscv_sdk_gcc/     ← ターゲット依存部（RISC-V・タスク2/作業中）
+│       └── pico2_riscv_sdk_gcc/     ← ターゲット依存部（RISC-V・実機 task1 動作確認済／RX割込みは未対応）
 ├── asp3_pico_sdk.cmake              ← 協調ヘルパ（PICO_PLATFORM→ASP3_TARGET/ASP3_TARGET_DIR・irq_* の --wrap）
-└── sample1/                         ← アプリ（CMakeLists.txt・pico_sdk_import.cmake・sample1_pico_sdk.c）
+├── sample1_arm/                     ← ARM-S アプリ（cpsid f・timer_check 同梱）
+└── sample1_riscv/                   ← RISC-V アプリ（csrci mstatus・toolchain_compat/＝picolibc補完）
 ```
+
+> sample1 は ISA で分割（ソースはほぼ同一・main の割込み禁止命令と CMake のツールチェーン設定のみ差）。
 
 - ビルドは `asp3_core` の正準 CMakeLists を **ライブラリ専用モード**（`ASP3_LIBRARY_ONLY=ON`）で
   `add_subdirectory` し、最終 ELF は本リポジトリ側でリンクする（fork CMake は廃止済み）。
@@ -34,7 +37,7 @@ asp3_pico_sdk/
 1. **`asp3/asp3_core/`（submodule）配下を直接編集しない**。カーネル本体は上流 ASP3 追従領域。
    変更が必要なら asp3_core リポジトリ側で行い、その `AGENTS.md` の規約（`kernel/`・`include/`・
    `library/` 編集禁止、変更は `target/`・`syssvc/`・新規ファイルに限定）に従う。
-   本リポジトリでの作業は **SDK 側ファイル（`asp3/arch/`・`asp3/target/`・`asp3_pico_sdk.cmake`・`sample1/`）**
+   本リポジトリでの作業は **SDK 側ファイル（`asp3/arch/`・`asp3/target/`・`asp3_pico_sdk.cmake`・`sample1_arm/`・`sample1_riscv/`）**
    に閉じるのが原則。
 2. **カーネル内で動的メモリ確保を使わない**（`malloc`/`new` 等禁止。静的生成のみ。ASP3 安全設計方針）。
 
@@ -46,25 +49,35 @@ git clone --recurse-submodules https://github.com/exshonda/asp3_pico_sdk.git
 cd asp3_pico_sdk
 # 既存clone: git submodule update --init --recursive
 
-# ビルド（ARM-S）
 export PICO_SDK_PATH=/path/to/pico-sdk          # 2.1.1
-cd sample1
-cmake -S . -B build -DPICO_PLATFORM=rp2350-arm-s -DPICO_BOARD=pico2
+
+# ビルド（ARM-S）　※PICO_PLATFORM は各 sample の CMakeLists に既定をベイク済（-D 不要）
+cd sample1_arm
+cmake -S . -B build -DPICO_BOARD=pico2
 cmake --build build -j
 # 生成物: build/sample1_pico_sdk.uf2 / .elf / .bin
+
+# ビルド（RISC-V / Hazard3）　※Ubuntu の riscv64-unknown-elf-gcc(=picolibc) 前提
+cd ../sample1_riscv
+cmake -S . -B build -DPICO_BOARD=pico2
+cmake --build build -j
+# CMakeLists にベイク済: PICO_GCC_TRIPLE=riscv64-unknown-elf / PICO_CLIB=picolibc /
+#   -B toolchain_compat（nosys.specs＝picolibc.specs複製・libstdc++空スタブ）
 ```
 
 書き込み：BOOTSEL を押しながら USB 接続 →`RPI-RP2` に `.uf2` をコピー（または
-`picotool load -x build/sample1_pico_sdk.uf2`、SWD は
-`openocd -f interface/cmsis-dap.cfg -f target/rp2350.cfg -c "program build/sample1_pico_sdk.elf verify reset exit"`）。
+`picotool load -x build/sample1_pico_sdk.uf2`、SWD は openocd）：
+- ARM-S: `openocd -f interface/cmsis-dap.cfg -f target/rp2350.cfg       -c "adapter speed 5000" -c "program build/sample1_pico_sdk.elf verify reset exit"`
+- RISC-V: `openocd -f interface/cmsis-dap.cfg -f target/rp2350-riscv.cfg -c "adapter speed 5000" -c "program build/sample1_pico_sdk.elf verify reset exit"`
 
 シリアル確認：**UART0・GP0(TX)/GP1(RX)・115200 8N1**（USB stdio は無効）。
-`minicom -D /dev/ttyUSB0 -b 115200` 等で
+`minicom -D /dev/ttyACM0 -b 115200`（Debugprobe）等で
 `TOPPERS/ASP3 Kernel ...` → `task1 is running (NNN).` の周期出力が出れば基本動作OK。
 
-> 前提ツール：pico-sdk 2.1.1 / arm-none-eabi-gcc（14_2_Rel1 推奨）/ cmake≥3.13 / python3 / picotool。
-> 既知の検証実績（ARM-S）：`.uf2` 生成・cfg 3パス・`--wrap` リンク・**PICO2 実機で task1 出力**を確認済
-> （`asp3/asp3_core/docs/dev/pico-sdk-integration.md` 実施結果）。
+> 前提ツール：pico-sdk 2.1.1 / arm-none-eabi-gcc（14_2_Rel1 推奨）/ RISC-V は riscv64-unknown-elf-gcc /
+>   cmake≥3.13 / python3 / picotool。
+> 既知の検証実績：**ARM-S・RISC-V とも PICO2 実機で task1 出力を確認済**
+> （RISC-V は TX のみ。RX 割込み共存は未対応＝タスク2-項4。`asp3/asp3_core/docs/dev/pico-sdk-integration.md` 参照）。
 
 ## 検証の鉄則
 

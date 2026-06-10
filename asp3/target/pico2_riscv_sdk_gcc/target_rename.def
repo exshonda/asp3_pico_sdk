@@ -1,0 +1,4 @@
+/* target_rename.def */
+
+target_initialize
+target_exit

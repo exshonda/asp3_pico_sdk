@@ -11,7 +11,7 @@ int main()
         Asm("WFI");;
 #endif
 
-    Asm("cpsid f":::"memory");
+    Asm("csrci mstatus, 8":::"memory");  /* RISC-V: clear MIE in mstatus before starting kernel */
 
     sta_ker();
 

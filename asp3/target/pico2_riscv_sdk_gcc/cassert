@@ -1,0 +1,5 @@
+#ifndef _PICO_RISCV_CASSERT_SHIM_
+#define _PICO_RISCV_CASSERT_SHIM_
+#include <assert.h>
+namespace std {}
+#endif

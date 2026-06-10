@@ -27,6 +27,9 @@ endif()
 # ====================================================================================
 set(PICO_BOARD pico2 CACHE STRING "Board type")
 
+# ISA：本ディレクトリは ARM-S（Cortex-M33）専用．既定を設定（-D で上書き可）．
+set(PICO_PLATFORM rp2350-arm-s CACHE STRING "Pico platform (ISA)")
+
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 

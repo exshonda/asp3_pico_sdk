@@ -1,0 +1,22 @@
+/*
+ *  cstdlib shim for riscv64-unknown-elf (Ubuntu picolibc-based toolchain).
+ *
+ *  Ubuntu's gcc-riscv64-unknown-elf is configured with --disable-libstdc++-v3,
+ *  so there are no C++ standard library headers. pico-sdk's new_delete.cpp
+ *  needs std::malloc / std::free / std::size_t from <cstdlib>.
+ *  This shim provides the minimal subset required.
+ */
+#ifndef _PICO_RISCV_CSTDLIB_SHIM_
+#define _PICO_RISCV_CSTDLIB_SHIM_
+#include <stdlib.h>
+namespace std {
+    using ::malloc;
+    using ::free;
+    using ::calloc;
+    using ::realloc;
+    using ::size_t;
+    using ::abort;
+    using ::exit;
+    using ::atexit;
+}
+#endif /* _PICO_RISCV_CSTDLIB_SHIM_ */
