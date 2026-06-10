@@ -24,6 +24,7 @@
 #include "target_serial.h"
 #include "target_syssvc.h"
 #include "pico/stdio.h"
+#include "hardware/structs/uart.h"	/* uart0_hw：RX 割込み（ASP3 ネイティブ ISR）で UART0 を直接操作 */
 
 extern void sio_irdy_snd(intptr_t exinf);
 
@@ -87,16 +88,22 @@ SIOPCB *sio_opn_por(ID siopid, EXINF exinf)
 	p_siopcb->rcv_rpos = 0;
 
 	/*
-	 *  受信割込みコールバック（RX）は当面 RISC-V では登録しない（TX のみ）．
-	 *  pico-sdk の stdio_set_chars_available_callback() は UART0 RX 割込みを
-	 *  irq_set_exclusive_handler() で登録するが，RISC-V（Hazard3/Xh3irq）版は
-	 *  ARM 版のような irq_* の --wrap（ASP3 管理への誘導）が未実装のため，
-	 *  pico-sdk 本体の hard_assert（"Hardware alarm/IRQ already claimed"）に達して
-	 *  PANIC する．ASP3 の RISC-V 割込みテーブル（_kernel_inh_table）は const で
-	 *  動的登録不可のため，RX 割込み共存は別途対応（CLAUDE.md タスク2-項4）．
-	 *  ※ TX（ログ出力）は本コールバックに依存しないため task1 出力は成立する．
+	 *  受信割込み（RX）の有効化．
+	 *  RISC-V（Hazard3/Xh3irq）では pico-sdk の RX 経路
+	 *  （stdio_set_chars_available_callback→irq_set_exclusive_handler）は使えない．
+	 *  pico-sdk は mtvec を「IRQ番号で索引する関数ポインタ表」とみなすが，ASP3 は
+	 *  mtvec を VECTORED モードの cause 索引 jump 表に使い，外部割込みは meinext で
+	 *  Xh3irq デマルチプレクスして const の _kernel_inh_table へ振るため，両者の
+	 *  mtvec 解釈が非互換（pico-sdk の hard_assert で PANIC する）．
+	 *  そこで RX は ASP3 ネイティブで受ける：UART0 の RX 割込みを有効化し，
+	 *  ハンドラ（sio_isr）は cfg の CRE_ISR で ASP3 の割込み管理に登録する
+	 *  （UART ペリフェラルの IMSC 設定のみ pico-sdk uart API で行い，irq 登録は
+	 *   一切呼ばない＝衝突なし）．TX は従来どおり pico-sdk stdio（putchar_raw）．
 	 */
-#if !defined(__riscv)
+#if defined(__riscv)
+	/*  UART0 の受信割込み（RXIM）と受信タイムアウト割込み（RTIM）を許可  */
+	uart0_hw->imsc |= UART_UARTIMSC_RXIM_BITS | UART_UARTIMSC_RTIM_BITS;
+#else
 	stdio_set_chars_available_callback(p_siopcb->handle, p_siopcb);
 #endif
 
@@ -171,6 +178,28 @@ void target_fput_log(char c)
 		putc('\r', stdout);
 	}
 	putc(c, stdout);
+}
+
+/*
+ *  UART 受信割込みサービスルーチン（ASP3 ネイティブ・RISC-V）
+ *  cfg の CRE_ISR で UART0 の割込み番号に結び付けられる．
+ *  pico-sdk の irq 登録は使わず，UART ペリフェラルから直接受信する．
+ */
+void sio_isr(intptr_t exinf)
+{
+	SIOPCB *p_siopcb = &siopcb_table[0];	/* TNUM_PORT==1 */
+
+	/*  RX FIFO を空になるまで吸い出す（FIFO ドレインで RXI はクリアされる）  */
+	while ((uart0_hw->fr & UART_UARTFR_RXFE_BITS) == 0U) {
+		p_siopcb->rcv_buf[p_siopcb->rcv_wpos] = (uint8_t)(uart0_hw->dr & 0xffU);
+		p_siopcb->rcv_wpos = (p_siopcb->rcv_wpos + 1) % sizeof(p_siopcb->rcv_buf);
+	}
+	/*  受信／受信タイムアウト割込みをクリア  */
+	uart0_hw->icr = UART_UARTICR_RXIC_BITS | UART_UARTICR_RTIC_BITS;
+
+	if (p_siopcb->rdy_rcv) {
+		sio_irdy_rcv(p_siopcb->exinf);
+	}
 }
 
 void sio_handler(void *ptr)

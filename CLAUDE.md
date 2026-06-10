@@ -16,7 +16,7 @@ asp3_pico_sdk/
 │   ├── asp3_core/                   ← submodule（純カーネル＋全アーキ/チップ依存部 arch/）※public
 │   └── target/                      ← SDK ターゲット依存部（チップ arch は asp3_core を共用）
 │       ├── pico2_arm_sdk_gcc/       ← ARM-S（chip.cmake を asp3_core から直接 include）
-│       └── pico2_riscv_sdk_gcc/     ← RISC-V（実機 task1 動作確認済／RX割込みは未対応）
+│       └── pico2_riscv_sdk_gcc/     ← RISC-V（実機 task1＋RX割込み動作確認済）
 ├── asp3_pico_sdk.cmake              ← 協調ヘルパ（PICO_PLATFORM→ASP3_TARGET/ASP3_TARGET_DIR・irq_* の --wrap）
 ├── sample1_arm/                     ← ARM-S アプリ（cpsid f・timer_check 同梱）
 └── sample1_riscv/                   ← RISC-V アプリ（csrci mstatus・toolchain_compat/＝picolibc補完）
@@ -76,8 +76,9 @@ cmake --build build -j
 
 > 前提ツール：pico-sdk 2.1.1 / arm-none-eabi-gcc（14_2_Rel1 推奨）/ RISC-V は riscv64-unknown-elf-gcc /
 >   cmake≥3.13 / python3 / picotool。
-> 既知の検証実績：**ARM-S・RISC-V とも PICO2 実機で task1 出力を確認済**
-> （RISC-V は TX のみ。RX 割込み共存は未対応＝タスク2-項4。`asp3/asp3_core/docs/dev/pico-sdk-integration.md` 参照）。
+> 既知の検証実績：**ARM-S・RISC-V とも PICO2 実機で task1 出力＋シリアル RX を確認済**
+> （RISC-V の RX は ASP3 ネイティブ ISR＝target_serial.cfg の CRE_ISR で受ける。pico-sdk の
+>  irq 登録は mtvec 解釈非互換のため使えない。経緯は `asp3/asp3_core/docs/dev/pico-sdk-integration.md`）。
 
 ## 検証の鉄則
 

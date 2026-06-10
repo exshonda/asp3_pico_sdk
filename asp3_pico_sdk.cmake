@@ -60,13 +60,17 @@ function(asp3_set_pico_sdk_options TARGET)
     target_compile_definitions(${TARGET}
       PUBLIC PICO_RUNTIME_SKIP_INIT_PER_CORE_IRQ_PRIORITIES
     )
-    #  ⚠️ 既知の制約（タスク2-項4・割込み共存）：
-    #  ARM 版のような irq_*/exception_* の --wrap（ASP3 管理への誘導）は RISC-V 未実装．
-    #  ARM は RAM ベクタ表（_kernel_exc_tbl）で動的登録できるが，RISC-V の ASP3 割込み表
-    #  （_kernel_inh_table）は const のため，pico-sdk の irq_set_exclusive_handler() を
-    #  そのまま受けると hard_assert で PANIC する．現状は target_serial.c 側で UART RX
-    #  割込みコールバック登録を抑止（TX のみ）して回避している（task1 出力は成立）．
-    #  RX 割込み共存は別途対応（_kernel_inh_table の RAM 化 or 動的登録機構が必要）．
+    #  割込み共存（タスク2-項4・実機確認済）：
+    #  ARM 版は pico-sdk の irq_*/exception_* を --wrap して ASP3 の RAM ベクタ表
+    #  （_kernel_exc_tbl）へ誘導するが，RISC-V では成立しない．pico-sdk は mtvec を
+    #  「IRQ番号で索引する関数ポインタ表」とみなすのに対し，ASP3 は mtvec を VECTORED
+    #  モードの cause 索引 jump 表に使い，外部割込みは meinext で Xh3irq デマルチプレクス
+    #  して const の _kernel_inh_table へ振る（mtvec 解釈が非互換）ため，pico-sdk の
+    #  irq_set_exclusive_handler() をそのまま受けると hard_assert で PANIC する．
+    #  → RX は ASP3 ネイティブで受ける：target_serial.cfg の CRE_ISR で UART0 RX 割込みを
+    #  ASP3 の割込み管理に静的登録し，pico-sdk の irq 登録は一切呼ばない（TX は pico-sdk
+    #  stdio の putchar_raw）．_kernel_inh_table の RAM 化は不要だった．実装は
+    #  target/pico2_riscv_sdk_gcc/target_serial.{c,cfg} を参照．
   else()
     #  ARM-S版：ASP3 が NVIC を掌握するため，SDKのベクタ/IRQ優先度初期化を抑止する
     target_compile_definitions(${TARGET}

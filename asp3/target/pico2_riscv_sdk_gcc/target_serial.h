@@ -45,6 +45,7 @@ typedef struct sio_port_control_block    SIOPCB;
 extern void sio_initialize(EXINF exinf);
 extern void sio_terminate(EXINF exinf);
 extern void sio_handler(void *ptr);
+extern void sio_isr(EXINF exinf);	/* RISC-V: ASP3 ネイティブ RX 割込みサービスルーチン */
 extern SIOPCB *sio_opn_por(ID siopid, EXINF exinf);
 extern void sio_cls_por(SIOPCB *p_siopcb);
 extern bool_t sio_snd_chr(SIOPCB *p_siopcb, char c);
