@@ -27,8 +27,11 @@ endif()
 # ====================================================================================
 set(PICO_BOARD pico2 CACHE STRING "Board type")
 
-# ISA：本ディレクトリは ARM-S（Cortex-M33）専用．既定を設定（-D で上書き可）．
-set(PICO_PLATFORM rp2350-arm-s CACHE STRING "Pico platform (ISA)")
+#  ターゲット ISA は PICO_PLATFORM で切替（ここでは固定しない）：
+#   - VS Code Pico 拡張：ボード/プラットフォーム切替で拡張が設定（ツールチェーンも拡張同梱）
+#   - コマンドライン：-DPICO_PLATFORM=rp2350-arm-s / rp2350-riscv を指定
+#  ※ RISC-V は拡張同梱の RISC-V ツールチェーン（newlib）を前提とする．
+#     ソース／cfg は ISA 非依存（差は asp3_pico_sdk.cmake の分岐と main の割込み禁止命令のみ）．
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)

@@ -54,13 +54,6 @@ list(APPEND ASP3_COMPILE_DEFS
     # Hazard3はFPUなし（TOPPERS_FPU_*は不要）
 )
 
-#  picolibc ヘッダ（stdio.h 等）のインクルードパス
-#  riscv64-unknown-elf-gcc (Ubuntu) は picolibc ベースで，
-#  --specs=picolibc.specs なしではデフォルト検索パスに含まれないため明示する
-list(APPEND ASP3_INCLUDE_DIRS
-    /usr/lib/picolibc/riscv64-unknown-elf/include
-)
-
 list(APPEND ASP3_TARGET_C_FILES
     ${TARGETDIR}/target_kernel_impl.c
     ${TARGETDIR}/target_timer.c
@@ -104,7 +97,9 @@ list(REMOVE_ITEM ASP3_COMPILE_OPTIONS
     -mabi=ilp32
 )
 
-#  libc_stub.c は不要（picolibc を使用するため）
+#  libc_stub.c（ベアメタル用 libc スタブ）は不要．
+#  RISC-V は Pico SDK 拡張同梱のツールチェーン（newlib）を前提とし，
+#  libc とスタートアップは pico-sdk / newlib が提供する．
 list(REMOVE_ITEM ASP3_ARCH_C_FILES
     ${ASP3_ROOT_DIR}/arch/riscv_gcc/polarfire_soc/libc_stub.c
 )
