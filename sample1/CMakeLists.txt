@@ -1,13 +1,15 @@
-# Generated Cmake Pico project file for TOPPERS/ASP3
+# TOPPERS/ASP3 Core + Raspberry Pi Pico SDK sample (sample1)
+#
+#  旧 asp3_pico_sdk の fork CMake は廃止し，asp3_core の正準 CMakeLists を
+#  ライブラリ専用モード（ASP3_LIBRARY_ONLY）で add_subdirectory して使う．
+#  pico 差分は ../asp3_pico_sdk.cmake ヘルパ＋外部 target（ASP3_TARGET_DIR）に閉じる．
+#  経緯：asp3_core/docs/dev/pico-sdk-integration.md
 
 cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Initialise pico_sdk from installed location
-# (note this can come from environment, CMake cache etc)
 
 # == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
 if(WIN32)
@@ -33,50 +35,50 @@ project(sample1_pico_sdk C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-# TOPPERS/ASP3 の Raspberry Pi Pico SDK 用のコンパイラ定義をインクルード
-include(../asp3/asp3_pico_sdk.cmake)
+# TOPPERS/ASP3 Core ＋ Pico SDK 協調ヘルパ
+#  （PICO_PLATFORM→ASP3_TARGET/ASP3_TARGET_DIR・ASP3_CORE_DIR・--wrap設定）
+include(../asp3_pico_sdk.cmake)
 
-# Add executable. Default name is the project name, version 0.1
+# アプリ（タスク定義＝sample1.c/.cfg）は asp3_core 同梱の sample を使用．
+# main() は pico ラッパ（sample1_pico_sdk.c）が提供する．
+set(ASP3_APPLDIR ${ASP3_CORE_DIR}/sample)
+set(ASP3_APPLNAME sample1)
 
+# asp3 カーネルライブラリ（libasp3.a）をライブラリ専用モードでビルド．
+# asp 実行ファイル・サンプル・ctest は作らず，asp3 lib／cfg生成／
+# ヘルパ関数（asp3_add_syssvc 等）のみが公開される．
+set(ASP3_LIBRARY_ONLY ON CACHE BOOL "build asp3 as library only" FORCE)
+add_subdirectory(${ASP3_CORE_DIR} asp3)
+
+# 最終実行ファイル（タスク本体＋pico main ラッパ）
 add_executable(sample1_pico_sdk
-    ${ASP3_CMAKE_DIR}/sample/sample1.c
+    ${ASP3_CORE_DIR}/sample/sample1.c
     sample1_pico_sdk.c
 )
+
+# システムサービス（syslog/banner/serial/serial_cfg/logtask＋library）を追加．
+# 旧 fork の syssvc.cmake＋library.cmake に相当する asp3_core のヘルパ．
+asp3_add_syssvc(sample1_pico_sdk)
 
 pico_set_program_name(sample1_pico_sdk "sample1_pico_sdk")
 pico_set_program_version(sample1_pico_sdk "0.1")
 
-# Modify the below lines to enable/disable output over UART/USB
+# 標準入出力：UART有効・USB無効（変更可）
 pico_enable_stdio_uart(sample1_pico_sdk 1)
 pico_enable_stdio_usb(sample1_pico_sdk 0)
 
-# TOPPERS/ASP3 のカーネルオブジェクト定義のcfgファイルを設定
-set(ASP3_APP_CFG_FILE ${ASP3_CMAKE_DIR}/sample/sample1.cfg)
-set(ASP3_APP_INCLUDE_DIRS ${ASP3_CMAKE_DIR}/sample)
+target_include_directories(sample1_pico_sdk PRIVATE
+    ${ASP3_CORE_DIR}/sample
+    ${CMAKE_CURRENT_LIST_DIR}
+)
 
-# TOPPERS/ASP3 のライブラリを追加
-add_subdirectory(${ASP3_CMAKE_DIR} asp3)
-
-# TOPPERS/ASP3 付属のソースファイルを追加
-include(${ASP3_CMAKE_DIR}/library/library.cmake)
-include(${ASP3_CMAKE_DIR}/syssvc/syssvc.cmake)
-
-# Add the standard library to the build
+# pico 標準ライブラリ ＋ asp3 カーネルライブラリ
 target_link_libraries(sample1_pico_sdk
     pico_stdlib
     asp3
 )
 
-# Add the standard include files to the build
-target_include_directories(sample1_pico_sdk PRIVATE
-    ${ASP3_CMAKE_DIR}/sample
-    ${CMAKE_CURRENT_LIST_DIR}
-)
-
-# TOPPERS/ASP3 を使うための Raspberry Pi Pico SDK の設定
-asp3_set_pico_sdk_options(${CMAKE_PROJECT_NAME})
+# TOPPERS/ASP3 を使うための Raspberry Pi Pico SDK の設定（irq_* の --wrap 等）
+asp3_set_pico_sdk_options(sample1_pico_sdk)
 
 pico_add_extra_outputs(sample1_pico_sdk)
-
-# TOPPERS/ASP3 のチェックを行う（シンボルがGCされるとエラーになるので省略）
-#asp3_cfg_check(${CMAKE_PROJECT_NAME})
