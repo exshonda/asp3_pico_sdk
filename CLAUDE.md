@@ -12,19 +12,19 @@ TOPPERS/ASP3 Core を Raspberry Pi Pico SDK と協調動作させる **SDK統合
 
 ```
 asp3_pico_sdk/
-├── asp3/                            ← ASP3移植部を集約（カーネル submodule＋チップarch＋SDK target）
-│   ├── asp3_core/                   ← submodule（純カーネル：kernel/ cfg/ syssvc/ 共通arch）※public
-│   ├── arch/arm_m_gcc/rp2350/       ← チップ依存部（ARM-S・SDK版＝pico-sdk serial 使用）
-│   │                                   ※tool依存部(arch/gcc)は asp3_core 側を共用（重複コピー廃止）
-│   └── target/
-│       ├── pico2_arm_sdk_gcc/       ← ターゲット依存部（ARM-S・ASP3_TARGET_DIR で供給）
-│       └── pico2_riscv_sdk_gcc/     ← ターゲット依存部（RISC-V・実機 task1 動作確認済／RX割込みは未対応）
+├── asp3/                            ← ASP3移植部（カーネル submodule＋SDK target）
+│   ├── asp3_core/                   ← submodule（純カーネル＋全アーキ/チップ依存部 arch/）※public
+│   └── target/                      ← SDK ターゲット依存部（チップ arch は asp3_core を共用）
+│       ├── pico2_arm_sdk_gcc/       ← ARM-S（chip.cmake を asp3_core から直接 include）
+│       └── pico2_riscv_sdk_gcc/     ← RISC-V（実機 task1 動作確認済／RX割込みは未対応）
 ├── asp3_pico_sdk.cmake              ← 協調ヘルパ（PICO_PLATFORM→ASP3_TARGET/ASP3_TARGET_DIR・irq_* の --wrap）
 ├── sample1_arm/                     ← ARM-S アプリ（cpsid f・timer_check 同梱）
 └── sample1_riscv/                   ← RISC-V アプリ（csrci mstatus・toolchain_compat/＝picolibc補完）
 ```
 
 > sample1 は ISA で分割（ソースはほぼ同一・main の割込み禁止命令と CMake のツールチェーン設定のみ差）。
+> arch（共通＋チップ）は ARM/RISC-V とも asp3_core 側を共用：SDK 側の arch 重複は全廃。
+> SDK 固有なのは target 依存部（serial=pico-sdk stdio・timer・kernel_impl）のみ。
 
 - ビルドは `asp3_core` の正準 CMakeLists を **ライブラリ専用モード**（`ASP3_LIBRARY_ONLY=ON`）で
   `add_subdirectory` し、最終 ELF は本リポジトリ側でリンクする（fork CMake は廃止済み）。
@@ -37,8 +37,8 @@ asp3_pico_sdk/
 1. **`asp3/asp3_core/`（submodule）配下を直接編集しない**。カーネル本体は上流 ASP3 追従領域。
    変更が必要なら asp3_core リポジトリ側で行い、その `AGENTS.md` の規約（`kernel/`・`include/`・
    `library/` 編集禁止、変更は `target/`・`syssvc/`・新規ファイルに限定）に従う。
-   本リポジトリでの作業は **SDK 側ファイル（`asp3/arch/`・`asp3/target/`・`asp3_pico_sdk.cmake`・`sample1_arm/`・`sample1_riscv/`）**
-   に閉じるのが原則。
+   本リポジトリでの作業は **SDK 側ファイル（`asp3/target/`・`asp3_pico_sdk.cmake`・`sample1_arm/`・`sample1_riscv/`）**
+   に閉じるのが原則（arch はすべて asp3_core 側）。
 2. **カーネル内で動的メモリ確保を使わない**（`malloc`/`new` 等禁止。静的生成のみ。ASP3 安全設計方針）。
 
 ## 2. 取得・ビルド・実機確認（基本フロー）

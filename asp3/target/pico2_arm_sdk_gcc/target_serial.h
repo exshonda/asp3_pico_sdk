@@ -58,6 +58,13 @@
  */
 #define BPS_SETTING  (115200)
 
+/*
+ *  コールバックルーチンの種別（旧 chip_serial.h の定義を取り込み，
+ *  本ドライバを自己完結化してチップ依存部 chip_serial.h への依存を断つ）
+ */
+#define SIO_RDY_SND  0U  /* 送信可能コールバック */
+#define SIO_RDY_RCV  1U  /* 受信通知コールバック */
+
 #ifndef TOPPERS_MACRO_ONLY
 
 /*
@@ -121,10 +128,5 @@ extern void sio_irdy_snd(EXINF exinf);
 extern void sio_irdy_rcv(EXINF exinf);
 
 #endif /* TOPPERS_MACRO_ONLY */
-
-/*
- *  チップで共通な定義
- */
-#include "chip_serial.h"
 
 #endif /* TOPPERS_TARGET_SERIAL_H */

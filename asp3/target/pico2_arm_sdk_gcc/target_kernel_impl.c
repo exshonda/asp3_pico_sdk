@@ -46,7 +46,7 @@
 #include "target_syssvc.h"
 #include <sil.h>
 #ifdef TOPPERS_OMIT_TECS
-#include "chip_serial.h"
+#include "target_serial.h"		/* 自己完結化：旧 chip_serial.h から差し替え */
 #endif
 #include "hardware/exception.h"
 #include "hardware/irq.h"
