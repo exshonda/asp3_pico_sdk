@@ -46,6 +46,14 @@ jobs:
         with:
           submodules: recursive
 
+      #  dev イメージは libnewlib-arm-none-eabi（C）のみで C++ 標準ヘッダが無い．
+      #  pico-sdk は C++（pico_cxx_options の new_delete.cpp）をビルドするため
+      #  arm-none-eabi 用の libstdc++ を追加する（cstdlib 等）．
+      - name: Install arm-none-eabi C++ stdlib (pico-sdk builds C++)
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends libstdc++-arm-none-eabi-newlib
+
       - name: Fetch pico-sdk (${{ env.PICO_SDK_VERSION }})
         run: |
           git clone --depth 1 --branch "${PICO_SDK_VERSION}" \
