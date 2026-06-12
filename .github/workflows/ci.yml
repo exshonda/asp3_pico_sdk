@@ -1,0 +1,63 @@
+#
+#		CI（Raspberry Pi PICO2 / Pico SDK統合 build-only）
+#
+#  asp3_core と同じ開発コンテナイメージ（ghcr.io/exshonda/asp3_core-dev）で
+#  実行する．pico-sdk は GUI 生成ツール不要（git 取得のみ）のため，SDK を
+#  バージョン固定で clone すれば arm-none-eabi-gcc だけで cmake ビルドが通る
+#  （ホスト検証済み：picotool は PICOTOOL_NO_LIBUSB で自動ビルド＝libusb 不要）．
+#
+#  テスト（test_porting / testexec）は実機 PICO2 が必要なため CI ではビルドのみ
+#  （QEMU に RP2350 モデルは無い）．実機検証は asp3_core の
+#  docs/dev/pico-sdk-integration.md・pico2-riscv.md を参照．
+#
+#  ISA：ARM-S（rp2350-arm-s）のみ．RISC-V（rp2350-riscv）は pico-sdk が専用の
+#  riscv32-corev ツールチェーンを要求し，共有 dev コンテナの riscv64-unknown-elf
+#  では不可のため CI 対象外（ベアメタル版 pico2_riscv は asp3_core 側 CI でビルド）．
+#
+name: CI
+
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PICO_SDK_VERSION: "2.1.1"
+
+jobs:
+  build:
+    name: Build sample1 (Cortex-M33 / Pico SDK, rp2350-arm-s)
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/exshonda/asp3_core-dev:20260606
+      #  イメージの既定ユーザはvscode（devcontainer用）のため、Actionsの
+      #  ランナーファイルに書けるようrootで実行する
+      options: --user root
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Fetch pico-sdk (${{ env.PICO_SDK_VERSION }})
+        run: |
+          git clone --depth 1 --branch "${PICO_SDK_VERSION}" \
+            https://github.com/raspberrypi/pico-sdk.git "${RUNNER_TEMP}/pico-sdk"
+          git -C "${RUNNER_TEMP}/pico-sdk" submodule update --init --depth 1 lib/tinyusb
+
+      - name: Build (sample1, rp2350-arm-s)
+        working-directory: sample1
+        env:
+          PICO_SDK_PATH: ${{ runner.temp }}/pico-sdk
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DPICO_PLATFORM=rp2350-arm-s -DPICO_BOARD=pico2
+          cmake --build build
+          ls -l build/*.elf build/*.uf2
