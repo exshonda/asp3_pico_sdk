@@ -159,6 +159,12 @@ cmake -S . -B build_riscv -DPICO_PLATFORM=rp2350-riscv -DPICO_BOARD=pico2 && cma
 
 ---
 
+## 設計・経緯の記録
+
+- [docs/design.md](docs/design.md) — 割込み共存（ARM `--wrap`／RISC-V ネイティブISR）・ツールチェーン・pico-sdk 互換
+- [docs/timer-coexistence.md](docs/timer-coexistence.md) — タイマ競合の解析・PICO2 実測・アプリ制約
+- [docs/history.md](docs/history.md) — リポジトリ再編の経緯・検証マトリクス・残課題
+
 ## 参考リポジトリ
 
 | リポジトリ | 用途 |
