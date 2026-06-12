@@ -94,68 +94,17 @@ cmake -S . -B build_riscv -DPICO_PLATFORM=rp2350-riscv -DPICO_BOARD=pico2 && cma
 
 ---
 
-# タスク
+# タスク（完了済み・記録）
 
-## タスク1：タイマ競合の検証と調停（SDK alarm TIMER0 vs ASP3 HRT）
+当初の依頼タスクは**すべて完了**（再実施不要）。経緯・結果は docs/ に集約済み：
 
-### 背景
-- ASP3 は `USE_TIM_AS_HRT` で**高分解能タイマ（HRT）に TIMER0 を使用**する
-  （`asp3/target/pico2_arm_sdk_gcc/target_timer.c` ／ `target_kernel.cfg`）。
-- 一方 pico-sdk の `hardware_timer`/`hardware_alarm`（`busy_wait`・`add_alarm_*`・`sleep_ms` 等）も
-  **TIMER0 のアラームを使う**。両者が同じ TIMER0 を取り合う可能性がある。
-- 基本サンプル（sample1）は実機で動作したが、**時間系の定量検証は未実施**＝本タスク。
+| タスク | 結果 |
+|---|---|
+| タスク1：タイマ競合の検証と調停 | **完了**。ALARM0(ASP3) vs ALARM3(SDK既定pool) で競合なし・PICO2 実測 +6ppm。詳細とアプリ制約は [docs/timer-coexistence.md](docs/timer-coexistence.md) |
+| タスク2：RISC-V（Hazard3）版の追加 | **完了**。`rp2350-riscv` 対応済み・実機 task1＋RX 確認済み（RX は ASP3 ネイティブ ISR＝mtvec 非互換のため）。設計は [docs/design.md](docs/design.md) §2 |
 
-### やること
-1. **現状把握**：`target_timer.c` が TIMER0 のどのアラーム/比較器・割込みを使うか、
-   pico-sdk 既定のアラームプール（`PICO_TIME_DEFAULT_ALARM_POOL_*`）と衝突するかを特定する。
-   `asp3/asp3_core/arch/arm_m_gcc/common/core_timer.c`（HRT 共通ロジック）も参照。
-2. **定量検証（実機）**：sample1 で
-   - `dly_tsk(N)`／周期ハンドラ（`CRE_CYC`）の周期が設計どおりか（例：1秒周期が実測ほぼ1秒か）
-   - `get_tim()`／`fch_hrt()` が単調増加し、長時間（数分〜）でドリフト・ロールオーバ異常が無いか
-   を測定（オシロ/ロジアナ or GPIO トグル＋シリアルのタイムスタンプ）。
-3. **共存設計**：アプリが pico-sdk のタイマAPI（`sleep_ms`/`add_alarm_in` 等）も使いたい場合の方針を決める。
-   候補：(a) ASP3 HRT を別タイマ/比較器に逃がす、(b) pico-sdk alarm pool を別チャネルに固定、
-   (c) SDK タイマAPIは使用禁止としドキュメント明記。**カーネル側変更が要るなら asp3_core 側で**
-   （禁則①）。
-4. 結果（測定値・採用方針）を `asp3/asp3_core/docs/dev/pico-sdk-integration.md` に記録。
-
-### 着手の入口
-- `asp3/target/pico2_arm_sdk_gcc/target_timer.{c,h}`、`target_kernel.cfg`、`asp3/asp3_core/arch/arm_m_gcc/common/core_timer.c`
-- pico-sdk：`src/rp2_common/hardware_timer/`、`src/common/pico_time/`
-
-## タスク2：RISC-V（Hazard3）版の追加（PICO_PLATFORM=rp2350-riscv）
-
-### 背景
-- 現在 `asp3_pico_sdk.cmake` は `PICO_PLATFORM=rp2350-riscv` を `FATAL_ERROR`（未対応）にしている。
-- 移植元は **asp3_core のベアメタル RISC-V 実装**：
-  - `asp3/asp3_core/arch/riscv_gcc/rp2350/`（チップ：`chip.cmake`・`xh3irq_kernel_impl.h`＝**Xh3irq 割込み**・`chip_support.S` 等）
-  - `asp3/asp3_core/arch/riscv_gcc/common/`（コア：`core_*`・`start.S`・`mtimer.*`・`plic_*`・`riscv.h`。XLEN抽象 RV32/RV64）
-  - `asp3/asp3_core/target/pico2_riscv_gcc/`（`USE_TIM_AS_HRT`・`chip.cmake` include）
-- RP2350 の RISC-V コア（Hazard3）は割込みが **NVIC ではなく Xh3irq**、ブートも RISC-V IMAGE_DEF。
-  ARM-S 版とは arch/target が根本的に異なる（ISAごとに別物）。
-
-### やること（ARM-S 構成を雛形に）
-1. **ヘルパ拡張**：`asp3_pico_sdk.cmake` の `rp2350-riscv` 分岐を実装
-   （`set(ASP3_TARGET pico2_riscv_sdk_gcc)` ＋ `ASP3_TARGET_DIR` 解決）。
-2. **チップ依存部を SDK 向けに用意**：`asp3/arch/riscv_gcc/rp2350/` を本リポジトリに追加。
-   asp3_core のベアメタル版をベースに、**シリアルを pico-sdk stdio 経由へ**（`TOPPERS_OMIT_CHIP_SERIAL`）、
-   CMake はパス規約（チップ＝`CMAKE_CURRENT_LIST_DIR` 相対、共通 arch＝`ASP3_ROOT_DIR`）に合わせる
-   （ARM-S の `asp3/arch/arm_m_gcc/rp2350/arch.cmake`・`asp3/target/pico2_arm_sdk_gcc/target.cmake` が参考）。
-3. **ターゲット依存部**：`asp3/target/pico2_riscv_sdk_gcc/` を追加
-   （`target_kernel.cfg`・`target_kernel.py`・`target_check.py`・`target_timer.c`・`target_serial.c` 等）。
-4. **割込み共存の確認**：pico-sdk の RISC-V ビルドが `irq_*` をどう登録するか調べ、ARM 版の `--wrap`
-   8関数が RISC-V でも適用可能か／別関数かを確認（Hazard3 の外部割込みコントローラ＝Xh3irq 経由）。
-   必要なら `asp3_set_pico_sdk_options()` を ISA で分岐。
-5. **sample1 は ISA で分けない**：`PICO_PLATFORM` で arm/riscv を切替（ソースは ISA 非依存）。
-6. **ビルド検証**：`cmake -S . -B build_riscv -DPICO_PLATFORM=rp2350-riscv -DPICO_BOARD=pico2`。
-   RISC-V トロイチェーン（pico-sdk の RISC-V toolchain、例 `riscv-none-elf-gcc`）が必要。
-   実機（PICO2 の RISC-V コア）で task1 出力まで確認。
-7. 結果を `asp3/asp3_core/docs/dev/pico-sdk-integration.md` に記録。
-
-### 着手の入口
-- `asp3_pico_sdk.cmake`（分岐追加）
-- 移植元：`asp3/asp3_core/arch/riscv_gcc/{rp2350,common}/`、`asp3/asp3_core/target/pico2_riscv_gcc/`
-- asp3_core 側の経緯：`asp3/asp3_core/docs/dev/pico2-riscv.md`（Xh3irq・RV32分岐・dlynse較正等）
+残課題は [docs/history.md](docs/history.md) の「残課題」を参照
+（RISC-V の timer_check 定量検証・OS Awareness 対応など）。
 
 ---
 
