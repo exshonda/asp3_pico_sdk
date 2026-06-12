@@ -24,7 +24,7 @@ FSP・STM32 統合の雛形（submodule 構成の第1例）。
 | `5d7eace` | **RISC-V UART RX**：mtvec 解釈非互換のため `--wrap` 不成立 → ASP3 ネイティブ ISR（`CRE_ISR`）方式で実機確認（→ [design.md](design.md) §2） |
 | `39600b2` | sample を単一 `sample1/` に統合（`PICO_PLATFORM` 切替）。RISC-V を拡張同梱 toolchain（newlib）に一本化し picolibc 回避策を全廃 |
 | `3429413` | **pico-sdk 2.2.0 対応**（`pico_platform_common` include 追加。2.1.1 と両対応） |
-| `bc69572` | 協調ヘルパを `asp3/asp3_pico_sdk.cmake` へ移動（**asp3_fsp / stm32_vscode_asp と構成統一**） |
+| `bc69572` | 協調ヘルパを `asp3/asp3_pico_sdk.cmake` へ移動（**asp3_fsp / stm32_vscode_asp（現 asp3_stm32cube）と構成統一**） |
 
 ## asp3_core 側に取り込まれた関連修正（本リポジトリ起点）
 
