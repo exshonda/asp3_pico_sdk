@@ -35,7 +35,7 @@ project(timer_check_pico_sdk C CXX ASM)
 pico_sdk_init()
 
 # TOPPERS/ASP3 Core + Pico SDK 協調ヘルパ
-include(${CMAKE_CURRENT_SOURCE_DIR}/../../asp3_pico_sdk.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../asp3/asp3_pico_sdk.cmake)
 
 # アプリディレクトリ = 本ディレクトリ（timer_check.cfg が置かれている場所）
 set(ASP3_APPLDIR ${CMAKE_CURRENT_LIST_DIR})

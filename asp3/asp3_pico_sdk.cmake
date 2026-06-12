@@ -14,13 +14,14 @@
 #  asp3_core 側の受け入れ口は docs/dev/pico-sdk-integration.md を参照．
 #
 
-#  本リポジトリ（SDK側）のルート＝このファイルの場所
-set(ASP3_SDK_DIR ${CMAKE_CURRENT_LIST_DIR})
+#  本リポジトリ（SDK側）のルート＝asp3/ の1つ上
+#  （本ファイルは asp3_fsp / stm32_vscode_asp と同じく asp3/ 配下に置く）
+get_filename_component(ASP3_SDK_DIR ${CMAKE_CURRENT_LIST_DIR}/.. ABSOLUTE)
 
 #  asp3_core サブモジュール（純カーネル：kernel/ cfg/ syssvc/ 共通arch）
-#  ASP3移植部（asp3_core submodule・チップ依存 arch・SDK target）は asp3/ 配下に集約．
-#  ヘルパ（本ファイル）とアプリ（sample1）はリポジトリルートに置く．
-set(ASP3_CORE_DIR ${CMAKE_CURRENT_LIST_DIR}/asp3/asp3_core)
+#  ASP3移植部（本ファイル・asp3_core submodule・SDK target）は asp3/ 配下に集約．
+#  アプリ（sample1）はリポジトリルートに置く．
+set(ASP3_CORE_DIR ${CMAKE_CURRENT_LIST_DIR}/asp3_core)
 
 #  ASP3カーネルソースのルート＝asp3_core サブモジュール．
 #  asp3_add_syssvc() 等のヘルパ関数は呼び出し側スコープの ASP3_ROOT_DIR を参照する
@@ -44,7 +45,7 @@ endif()
 
 #  ターゲット依存部（target.cmake）の場所を asp3_core へ供給（本リポジトリ側）．
 #  asp3_core.cmake はこれを未定義時のみ既定値で埋めるため，ここで先に設定する．
-set(ASP3_TARGET_DIR ${CMAKE_CURRENT_LIST_DIR}/asp3/target/${ASP3_TARGET})
+set(ASP3_TARGET_DIR ${CMAKE_CURRENT_LIST_DIR}/target/${ASP3_TARGET})
 
 #  SDK協調に必要なカーネル構成定義（add_subdirectory(asp3_core) の子スコープへ継承される）
 list(APPEND ASP3_COMPILE_DEFS

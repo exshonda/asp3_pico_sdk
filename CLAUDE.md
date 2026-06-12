@@ -12,12 +12,12 @@ TOPPERS/ASP3 Core を Raspberry Pi Pico SDK と協調動作させる **SDK統合
 
 ```
 asp3_pico_sdk/
-├── asp3/                            ← ASP3移植部（カーネル submodule＋SDK target）
+├── asp3/                            ← ASP3移植部（協調ヘルパ＋カーネル submodule＋SDK target）
+│   ├── asp3_pico_sdk.cmake          ← 協調ヘルパ（PICO_PLATFORM→ASP3_TARGET/ASP3_TARGET_DIR・irq_* の --wrap）
 │   ├── asp3_core/                   ← submodule（純カーネル＋全アーキ/チップ依存部 arch/）※public
 │   └── target/                      ← SDK ターゲット依存部（チップ arch は asp3_core を共用）
 │       ├── pico2_arm_sdk_gcc/       ← ARM-S（chip.cmake を asp3_core から直接 include）
 │       └── pico2_riscv_sdk_gcc/     ← RISC-V（拡張toolchain(newlib)で実機 task1+RX 確認済）
-├── asp3_pico_sdk.cmake              ← 協調ヘルパ（PICO_PLATFORM→ASP3_TARGET/ASP3_TARGET_DIR・irq_* の --wrap）
 └── sample1/                         ← アプリ（ARM/RISC-V 共通・timer_check 同梱）
 ```
 
@@ -38,7 +38,7 @@ asp3_pico_sdk/
 1. **`asp3/asp3_core/`（submodule）配下を直接編集しない**。カーネル本体は上流 ASP3 追従領域。
    変更が必要なら asp3_core リポジトリ側で行い、その `AGENTS.md` の規約（`kernel/`・`include/`・
    `library/` 編集禁止、変更は `target/`・`syssvc/`・新規ファイルに限定）に従う。
-   本リポジトリでの作業は **SDK 側ファイル（`asp3/target/`・`asp3_pico_sdk.cmake`・`sample1/`）**
+   本リポジトリでの作業は **SDK 側ファイル（`asp3/target/`・`asp3/asp3_pico_sdk.cmake`・`sample1/`）**
    に閉じるのが原則（arch はすべて asp3_core 側）。
 2. **カーネル内で動的メモリ確保を使わない**（`malloc`/`new` 等禁止。静的生成のみ。ASP3 安全設計方針）。
 

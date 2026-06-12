@@ -2,7 +2,7 @@
 #
 #  旧 asp3_pico_sdk の fork CMake は廃止し，asp3_core の正準 CMakeLists を
 #  ライブラリ専用モード（ASP3_LIBRARY_ONLY）で add_subdirectory して使う．
-#  pico 差分は ../asp3_pico_sdk.cmake ヘルパ＋外部 target（ASP3_TARGET_DIR）に閉じる．
+#  pico 差分は ../asp3/asp3_pico_sdk.cmake ヘルパ＋外部 target（ASP3_TARGET_DIR）に閉じる．
 #  経緯：asp3_core/docs/dev/pico-sdk-integration.md
 
 cmake_minimum_required(VERSION 3.13)
@@ -43,7 +43,7 @@ pico_sdk_init()
 
 # TOPPERS/ASP3 Core ＋ Pico SDK 協調ヘルパ
 #  （PICO_PLATFORM→ASP3_TARGET/ASP3_TARGET_DIR・ASP3_CORE_DIR・--wrap設定）
-include(../asp3_pico_sdk.cmake)
+include(../asp3/asp3_pico_sdk.cmake)
 
 # アプリ（タスク定義＝sample1.c/.cfg）は asp3_core 同梱の sample を使用．
 # main() は pico ラッパ（sample1_pico_sdk.c）が提供する．
