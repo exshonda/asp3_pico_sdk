@@ -1,3 +1,7 @@
 build/
 build_*/
 
+# .claude/ はローカル設定等を追跡しない。skill だけ追跡対象にする。
+.claude/*
+!.claude/skills/
+
